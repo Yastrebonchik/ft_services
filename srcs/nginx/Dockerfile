@@ -20,4 +20,4 @@ RUN  mkdir -p /run/nginx
 EXPOSE 80 443
 
 #Docker run
-CMD ["/start.sh"]
+CMD ["sh", "start.sh"]

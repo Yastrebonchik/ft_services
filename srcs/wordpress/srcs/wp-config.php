@@ -28,8 +28,11 @@ define( 'DB_USER', 'admin' );
 /** MySQL database password */
 define( 'DB_PASSWORD', 'admin' );
 
+define('WP_HOME', 'http://192.168.99.100:5050');
+define('WP_SITEURL', 'http://192.168.99.100:5050');
+
 /** MySQL hostname */
-define( 'DB_HOST', 'localhost' );
+define( 'DB_HOST', 'mysql-svc:3306' );
 
 /** Database Charset to use in creating database tables. */
 define( 'DB_CHARSET', 'utf8' );
