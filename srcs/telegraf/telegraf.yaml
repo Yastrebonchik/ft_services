@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-config
+data:
+  telegraf.conf: |+
+    [[outputs.influxdb]]
+      urls = ["$INFLUXDB_URL"]
+      database = "influxdb-svc:8086"
+      username = "admin"
+      password = "admin"
+# Statsd Server
+    [[inputs.statsd]]
+      max_tcp_connections = 250
+      tcp_keep_alive = false
+      service_address = ":8125"
+      delete_gauges = true
+      delete_counters = true
+      delete_sets = true
+      delete_timings = true
+      metric_separator = "."
+      allowed_pending_messages = 10000
+      percentile_limit = 1000
+      parse_data_dog_tags = true 
+      read_buffer_size = 65535
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegraf-svc
+spec:
+  selector:
+    app: telegraf
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf-deployment
+  labels:
+    app: telegraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      containers:
+      - name: telegraf
+        image: telegraf_image
+        imagePullPolicy: Never

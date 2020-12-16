@@ -1,12 +1,15 @@
 FROM alpine:latest
 
-RUN apk update
+RUN apk update && apk upgrade
 
 RUN apk add mysql mysql-client openrc
 RUN mkdir "/run/mysqld"
 RUN chown -R mysql /run/mysqld
+COPY ./srcs/my.cnf /etc
 COPY ./srcs/start.sh ./
-RUN apk add mysql mariadb-client
+COPY ./srcs/mysql_conf.sql /etc
+COPY ./srcs/wordpress.sql /etc
+RUN chmod u+x start.sh
 
 # #Importing OS
 # FROM alpine:latest
@@ -17,7 +20,6 @@ RUN apk add mysql mariadb-client
 # #Copying all what needed
 # COPY srcs/start.sh /
 # #COPY srcs/my.cnf etc/my.cnf
-#RUN  chmod 777 start.sh
 # #RUN  rc default
 # #RUN  rc-service mariadb start
 
