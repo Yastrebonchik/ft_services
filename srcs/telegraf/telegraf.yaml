@@ -1,54 +1,83 @@
 apiVersion: v1
+kind: Secret
+metadata:
+  name: telegraf-secret
+type: Opaque
+stringData:
+  INFLUXDB_DB: telegraf
+  INFLUXDB_URL: http://influxdb-svc:8086
+  INFLUXDB_USER: admin
+  INFLUXDB_PASSWORD: admin
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-config
+  labels:
+    app: telegraf
 data:
-  telegraf.conf: |+
+  telegraf.conf: |
+    [global_tags]
+    [agent]
+    interval = "10s"
+    round_interval = true
+      metric_batch_size = 1000
+      metric_buffer_limit = 10000
+      collection_jitter = "0s"
+      flush_interval = "10s"
+      flush_jitter = "0s"
+      precision = ""
+      hostname = ""
+      omit_hostname = true
     [[outputs.influxdb]]
       urls = ["$INFLUXDB_URL"]
-      database = "influxdb-svc:8086"
-      username = "admin"
-      password = "admin"
-# Statsd Server
-    [[inputs.statsd]]
-      max_tcp_connections = 250
-      tcp_keep_alive = false
-      service_address = ":8125"
-      delete_gauges = true
-      delete_counters = true
-      delete_sets = true
-      delete_timings = true
-      metric_separator = "."
-      allowed_pending_messages = 10000
-      percentile_limit = 1000
-      parse_data_dog_tags = true 
-      read_buffer_size = 65535
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: telegraf-svc
-spec:
-  selector:
-    app: telegraf
+      database = "$INFLUXDB_DB"
+      username = "$INFLUXDB_USER"
+      password = "$INFLUXDB_USER_PASSWORD"
+    [[inputs.docker]]
+      endpoint = "unix:///var/run/docker.sock"
+      gather_services = false
+      container_name_include = []
+      perdevice = true
+      total = true
+      docker_label_include = []
+      tag_env = ["JAVA_HOME", "HEAP_SIZE"]
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: telegraf-deployment
-  labels:
-    app: telegraf
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: telegraf
+  replicas: 1
+  minReadySeconds: 5
   template:
     metadata:
+      name: telegraf
       labels:
         app: telegraf
     spec:
       containers:
-      - name: telegraf
-        image: telegraf_image
-        imagePullPolicy: Never
+        - name: telegraf
+          image: telegraf_image
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: telegraf-config
+              mountPath: /etc/telegraf/telegraf.conf
+              subPath: telegraf.conf
+              readOnly: true
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+          envFrom:
+          - secretRef:
+              name: telegraf-secret
+      volumes:
+        - name: telegraf-config
+          configMap:
+            name: telegraf-config
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
